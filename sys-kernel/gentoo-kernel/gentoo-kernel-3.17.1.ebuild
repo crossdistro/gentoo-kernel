@@ -7,21 +7,24 @@ ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
 K_GENPATCHES_VER="2"
 K_DEBLOB_AVAILABLE="1"
-inherit kernel-2
+inherit kernel-2 mount-boot
 detect_version
 detect_arch
 
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
 HOMEPAGE="http://dev.gentoo.org/~mpagano/genpatches"
-IUSE="deblob experimental"
+IUSE="deblob +grub2 experimental"
 
 DESCRIPTION="Full sources including the Gentoo patchset for the ${KV_MAJOR}.${KV_MINOR} kernel tree"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 
 pkg_postinst() {
-    kernel-2_pkg_postinst
-    einfo "For more info on this patchset, and how to report problems, see:"
-    einfo "${HOMEPAGE}"
+	kernel-2_pkg_postinst
+	einfo "For more info on this patchset, and how to report problems, see:"
+	einfo "${HOMEPAGE}"
+	if use grub2; then
+		grub2-mkconfig > /boot/grub2/grub.cfg
+	fi
 }
 
 pkg_postrm() {
@@ -68,10 +71,21 @@ src_install() {
 	cd "${D}"/usr/src/linux-${P}
 	# prepare for real-world use and 3rd-party module building:
 	make mrproper || die
+
+	cd ${D}
+	cp ${FILESDIR}/group-source-files.pl ${T} || die
+	chmod +x ${T}/group-source-files.pl
+	${T}/group-source-files.pl -D ${T}/keep-src-files -N ${T}/nokeep-src-files \
+		-L usr/src/linux-${P}
+
+	cd "${D}"/usr/src/linux-${P}
 	cp "${FILESDIR}"/config .config || die
 	yes "" | make oldconfig || die
 	make prepare || die
 	make scripts || die
+
+	cat ${T}/nokeep-src-files | grep -v '%dir' | sed -e 's#^#'"${D}"'#' | xargs rm -f
+
 	# OK, now the source tree is configured to allow 3rd-party modules to be
 	# built against it, since we want that to work since we have a binary kernel
 	# built.
@@ -93,14 +107,3 @@ src_install() {
 
 }
 
-pkg_postinst() {
-	if [[ -h "${ROOT}"usr/src/linux ]]; 
-	then 
-		rm "${ROOT}"usr/src/linux
-	fi
-
-	if [[ ! -e "${ROOT}"usr/src/linux ]];
-	then
-		ln -sf linux-${P} "${ROOT}"usr/src/linux
-	fi
-}
