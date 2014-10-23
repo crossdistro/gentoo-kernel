@@ -34,7 +34,10 @@ pkg_setup() {
 }
 
 src_prepare() {
-	kernel-2_src_prepare
+	:;
+	#mkdir obj
+	#cp ${FILESDIR}/config obj/.config
+	#make O=obj oldconfig
 }
 
 src_compile() {
@@ -43,6 +46,7 @@ src_compile() {
 	install -d "${WORKDIR}"/build "${WORKDIR}"/out/lib/firmware
 	genkernel \
 		--no-save-config \
+		--no-clean \
 		--kernel-config="${FILESDIR}"/config \
 		--kernname="${PN}" \
 		--build-src="${S}" \
@@ -53,9 +57,8 @@ src_compile() {
 		--tempdir="${T}"/twork \
 		--logfile="${WORKDIR}"/genkernel.log \
 		--bootdir="${WORKDIR}"/out/boot \
-		--no-busybox \
 		--module-prefix="${WORKDIR}"/out \
-		all || die "genkernel failed"
+		kernel || die "genkernel failed"
 }
 
 src_install() {
