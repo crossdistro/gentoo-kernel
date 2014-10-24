@@ -20,6 +20,88 @@ SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 
 DEPEND=">=sys-kernel/genkernel-3.4.51.2-r1"
 
+USER_CONFIG="/etc/portage/savedconfig/sys-kernel/${PN}"
+DISTRO_CONFIG="${FILESDIR}/config-${PV}"
+
+ewarn_file() {
+	while read line; do
+		ewarn $line
+	done < ${1}
+}
+
+elog_file() {
+	while read line; do
+		elog $line
+	done < ${1}
+}
+
+process_diffs() {
+	if [[ -s new_options ]]; then
+		ewarn "There are some options enabled in .config that were not known neither to the user nor distro config."
+		ewarn "This can happen when the user config based on older kernel version has enabled an option that"
+		ewarn "was not enabled in the distro config, and now a new option in newer kernel version depends on it."
+		ewarn "Values for these new options are taken from upstream default, which might not be what yout want:"
+		ewarn_file new_options
+		echo
+	fi
+
+	if [[ -s is_missing ]]; then
+		ewarn "There are some options in user config that are missing from the final .config file."
+		ewarn "This can happen when options are removed in a new kernel version, or due to newly introduced dependencies"
+		ewarn "on options that are disabled in the .config."
+		ewarn "You should review the list for options important to you:"
+		ewarn_file is_missing
+		echo
+	fi
+
+	if [[ -s was_changed ]]; then
+		ewarn "There are some options in .config whose values have changed from the values specified in the user config."
+		ewarn "This can happen due to dependency changes in the options, or new options being enabled in the new kernel"
+		ewarn "and forcing different values on dependent options."
+		ewarn "Changes from 'm' to 'y' should be harmless, other changes should be reviewed:"
+		ewarn_file was_changed
+		echo
+	fi
+
+	if [[ -s was_disabled ]]; then
+		elog "There are some options enabled in .config that were disabled in the user config. This can happen if the"
+		elog "options are enabled due to other new options being enabled, or due to dependency changes."
+		elog "This should be harmless, but you can review the list for options you don't want."
+		elog_file was_disabled
+		echo
+	fi
+
+	if [[ -s dist_was_changed ]]; then
+		elog "There are some options in .config whose values have changed from the values specified in the distro config."
+		elog "This can happen due to options overriden in the user config forcing different values on dependent options."
+		elog "The changes should be harmless, but you can review the list:"
+		elog_file dist_was_changed
+		echo
+	fi
+
+	if [[ -s dist_was_diabled ]]; then
+		elog "There are some options enabled in .config that were disabled in the distro config. This can happen if the"
+		elog "options are enabled due to other new options being enabled, or due to dependency changes."
+		elog "This should be harmless, but you can review the list for options you don't want."
+		elog_file dist_was_disabled
+		echo
+	fi
+
+	if [[ -s dist_is_missing ]]; then
+		elog "There are $(wc -l < dist_is_missing) options in the distro config that are missing from the final .config file."
+		elog "This can happen e.g. when the user config disables an entire class of drivers, and a new driver of this"
+		elog "class is introduced in the new kernel version. This should be harmless."
+		echo
+	fi
+
+	if [[ -s dist_new_options ]]; then
+		elog "There are $(wc -l < dist_new_options) options enabled in .config through the distro config, which were not known when the user config"
+		elog "has been created. These include new features and drivers that the kernel team enables by default. This means"
+		elog "it should be harmless, but may result in e.g. extra disk space taken by drivers for hardware you do not have."
+		echo
+	fi
+}
+
 pkg_postinst() {
 	kernel-2_pkg_postinst
 	einfo "For more info on this patchset, and how to report problems, see:"
@@ -39,10 +121,21 @@ pkg_setup() {
 }
 
 src_prepare() {
-	:;
-	#mkdir obj
-	#cp ${FILESDIR}/config obj/.config
-	#make O=obj oldconfig
+	mkdir "${T}"/cfg || die
+	if [[ -f ${USER_CONFIG} ]]; then
+		einfo "Using saved user config from ${USER_CONFIG}"
+		cd "${T}"/cfg || die
+		cp ${FILESDIR}/user-config.py . || die
+		chmod +x user-config.py || die
+		./user-config.py --combine ${USER_CONFIG} ${DISTRO_CONFIG} .config || die
+		cd "${S}" || die
+		yes "" | make O="${T}"/cfg/ oldconfig || die
+		cd "${T}"/cfg || die
+		./user-config.py --diff ${USER_CONFIG} ${DISTRO_CONFIG} .config . || die
+		process_diffs
+	else
+		cp ${DISTRO_CONFIG} "${T}"/cfg/.config
+	fi
 }
 
 src_compile() {
@@ -52,7 +145,7 @@ src_compile() {
 	genkernel \
 		--no-save-config \
 		--no-clean \
-		--kernel-config="${FILESDIR}"/config \
+		--kernel-config="${T}"/cfg/.config \
 		--kernname="${PN}" \
 		--kerneldir="${S}" \
 		--kernel-outputdir="${WORKDIR}"/build \
@@ -81,7 +174,7 @@ src_install() {
 		-L usr/src/linux-${P}
 
 	cd "${D}"/usr/src/linux-${P}
-	cp "${FILESDIR}"/config .config || die
+	cp "${T}"/cfg/.config .config || die
 	yes "" | make oldconfig || die
 	make prepare || die
 	make scripts || die
