@@ -18,6 +18,8 @@ IUSE="deblob +grub2 experimental"
 DESCRIPTION="Full sources including the Gentoo patchset for the ${KV_MAJOR}.${KV_MINOR} kernel tree"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 
+DEPEND=">=sys-kernel/genkernel-3.4.51.2-r1"
+
 pkg_postinst() {
 	kernel-2_pkg_postinst
 	einfo "For more info on this patchset, and how to report problems, see:"
@@ -52,10 +54,10 @@ src_compile() {
 		--no-clean \
 		--kernel-config="${FILESDIR}"/config \
 		--kernname="${PN}" \
-		--build-src="${S}" \
-		--build-dst="${WORKDIR}"/build \
-		--makeopts="${MAKEOPTS}" \
+		--kerneldir="${S}" \
+		--kernel-outputdir="${WORKDIR}"/build \
 		--firmware-dst="${WORKDIR}"/out/lib/firmware \
+		--makeopts="${MAKEOPTS}" \
 		--cachedir="${T}"/cache \
 		--tempdir="${T}"/twork \
 		--logfile="${WORKDIR}"/genkernel.log \
