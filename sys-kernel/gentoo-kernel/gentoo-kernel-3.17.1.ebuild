@@ -129,7 +129,7 @@ src_prepare() {
 		chmod +x user-config.py || die
 		./user-config.py --combine ${USER_CONFIG} ${DISTRO_CONFIG} .config || die
 		cd "${S}" || die
-		yes "" | make O="${T}"/cfg/ oldconfig || die
+		make O="${T}"/cfg/ olddefconfig || die
 		cd "${T}"/cfg || die
 		./user-config.py --diff ${USER_CONFIG} ${DISTRO_CONFIG} .config . || die
 		process_diffs
@@ -175,7 +175,7 @@ src_install() {
 
 	cd "${D}"/usr/src/linux-${P}
 	cp "${T}"/cfg/.config .config || die
-	yes "" | make oldconfig || die
+	make olddefconfig || die
 	make prepare || die
 	make scripts || die
 
