@@ -1,0 +1,150 @@
+From 71e55e7b06ca91d410368ff191b5c6f1d3309e58 Mon Sep 17 00:00:00 2001
+From: Daniel Robbins <drobbins@funtoo.org>
+Date: Wed, 9 Mar 2011 21:00:07 -0700
+Subject: [PATCH] firmware improvements:
+
+--firmware-dst defines where firmware is installed *to* - this is
+useful when using genkernel within ebuilds and you want to write
+firmware to somewhere in $WORKDIR. Defaults to /lib/firmware.
+
+--firmware-src replaces --firmware-dir (still supported) and defaults
+to --firmware-dst.
+
+Conflicts:
+	gen_cmdline.sh
+	gen_compile.sh
+	gen_determineargs.sh
+	gen_initramfs.sh
+	genkernel.conf
+---
+ gen_cmdline.sh       | 22 +++++++++++++++++++---
+ gen_compile.sh       |  2 ++
+ gen_determineargs.sh |  3 ++-
+ gen_initramfs.sh     |  8 ++++----
+ genkernel.conf       |  6 +++---
+ 5 files changed, 30 insertions(+), 11 deletions(-)
+
+diff --git a/gen_cmdline.sh b/gen_cmdline.sh
+index 6ef6ae0..c978193 100755
+--- a/gen_cmdline.sh
++++ b/gen_cmdline.sh
+@@ -149,8 +149,14 @@ longusage() {
+   echo "	--firmware"
+   echo "				Enable copying of firmware into initramfs"
+   echo "	--firmware-dir=<dir>"
++  echo "	--firmware-src=<dir>"
++  echo "                                Implies --firmware."
+   echo "				Specify directory to copy firmware from (defaults"
+-  echo "				to /lib/firmware)"
++  echo "				to --firmware-dst setting)"
++  echo "	--firmware-dst=<dir>"
++  echo "                                Implies --firmware."
++  echo "				Specify directory to install firmware to (defaults"
++  echo "                                to /lib/firmware)"
+   echo "	--firmware-files=<files>"
+   echo "				Specifies specific firmware files to copy. This"
+   echo "				overrides --firmware-dir. For multiple files,"
+@@ -561,10 +567,20 @@ parse_cmdline() {
+ 			CMD_FIRMWARE=`parse_optbool "$*"`
+ 			print_info 2 "CMD_FIRMWARE: ${CMD_FIRMWARE}"
+ 			;;
++		--firmware-dst=*)
++			CMD_FIRMWARE_DST=`parse_opt "$*"`
++			CMD_FIRMWARE=1
++			print_info 2 "CMD_FIRMWARE_DST: ${CMD_FIRMWARE_DST}"
++			;;
+ 		--firmware-dir=*)
+-			CMD_FIRMWARE_DIR=`parse_opt "$*"`
++			CMD_FIRMWARE_SRC=`parse_opt "$*"`
++			CMD_FIRMWARE=1
++			print_info 2 "CMD_FIRMWARE_SRC: ${CMD_FIRMWARE_SRC}"
++			;;
++		--firmware-src=*)
++			CMD_FIRMWARE_SRC=`parse_opt "$*"`
+ 			CMD_FIRMWARE=1
+-			print_info 2 "CMD_FIRMWARE_DIR: ${CMD_FIRMWARE_DIR}"
++			print_info 2 "CMD_FIRMWARE_SRC: ${CMD_FIRMWARE_SRC}"
+ 			;;
+ 		--firmware-files=*)
+ 			CMD_FIRMWARE_FILES=`parse_opt "$*"`
+diff --git a/gen_compile.sh b/gen_compile.sh
+index 0fb33d5..2c5ed13 100755
+--- a/gen_compile.sh
++++ b/gen_compile.sh
+@@ -29,6 +29,8 @@ compile_kernel_args() {
+ 		then
+ 			ARGS="${ARGS} O=\"${KERNEL_OUTPUTDIR}\""
+ 		fi
++		# tweak destination for firmware install...
++		ARGS="${ARGS} INSTALL_FW_PATH=\"${FIRMWARE_DST}\""
+ 	fi
+ 	echo -n "${ARGS}"
+ }
+diff --git a/gen_determineargs.sh b/gen_determineargs.sh
+index dc6b2c4..5061f15 100755
+--- a/gen_determineargs.sh
++++ b/gen_determineargs.sh
+@@ -128,7 +128,8 @@ determine_real_args() {
+ 	set_config_with_override BOOL   VIRTIO               CMD_VIRTIO				  "no"
+ 	set_config_with_override BOOL   MULTIPATH            CMD_MULTIPATH
+ 	set_config_with_override BOOL   FIRMWARE             CMD_FIRMWARE
+-	set_config_with_override STRING FIRMWARE_DIR         CMD_FIRMWARE_DIR         "/lib/firmware"
++	set_config_with_override STRING FIRMWARE_DST         CMD_FIRMWARE_DST         "/lib/firmware"
++	set_config_with_override STRING FIRMWARE_SRC         CMD_FIRMWARE_SRC         "$FIRMWARE_DST"
+ 	set_config_with_override STRING FIRMWARE_FILES       CMD_FIRMWARE_FILES
+ 	set_config_with_override BOOL   INTEGRATED_INITRAMFS CMD_INTEGRATED_INITRAMFS
+ 	set_config_with_override BOOL   GENZIMAGE            CMD_GENZIMAGE
+diff --git a/gen_initramfs.sh b/gen_initramfs.sh
+index b9ff518..dfd8c96 100755
+--- a/gen_initramfs.sh
++++ b/gen_initramfs.sh
+@@ -553,9 +553,9 @@ append_luks() {
+ }
+ 
+ append_firmware() {
+-	if [ -z "${FIRMWARE_FILES}" -a ! -d "${FIRMWARE_DIR}" ]
++	if [ -z "${FIRMWARE_FILES}" -a ! -d "${FIRMWARE_SRC}" ]
+ 	then
+-		gen_die "specified firmware directory (${FIRMWARE_DIR}) does not exist"
++		gen_die "specified firmware source directory (${FIRMWARE_SRC}) does not exist"
+ 	fi
+ 	if [ -d "${TEMP}/initramfs-firmware-temp" ]
+ 	then
+@@ -573,7 +573,7 @@ append_firmware() {
+ 		done
+ 		IFS=$OLD_IFS
+ 	else
+-		cp -a "${FIRMWARE_DIR}"/* ${TEMP}/initramfs-firmware-temp/lib/firmware/
++		cp -a "${FIRMWARE_SRC}"/* ${TEMP}/initramfs-firmware-temp/lib/firmware/
+ 	fi
+ 	log_future_cpio_content
+ 	find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
+@@ -824,7 +824,7 @@ create_initramfs() {
+ 
+ 	append_data 'modprobed'
+ 
+-	if isTrue "${FIRMWARE}" && [ -n "${FIRMWARE_DIR}" ]
++	if isTrue "${FIRMWARE}" && [ -n "${FIRMWARE_SRC}" ]
+ 	then
+ 		append_data 'firmware'
+ 	fi
+diff --git a/genkernel.conf b/genkernel.conf
+index ad5750e..e744304 100644
+--- a/genkernel.conf
++++ b/genkernel.conf
+@@ -99,9 +99,9 @@ USECOLOR="yes"
+ # Enable copying of firmware into initramfs
+ #FIRMWARE="no"
+ # Specify directory to pull from
+-#FIRMWARE_DIR="/lib/firmware"
+-# Specify specific firmware files to include. This overrides FIRMWARE_DIR
+-#FIRMWARE_FILES=""
++# FIRMWARE_SRC="/lib/firmware"
++# Specify specific firmware files to include. This overrides FIRMWARE_SRC
++# FIRMWARE_FILES=""
+ 
+ # Enable disklabel support (copies blkid to initrd)
+ DISKLABEL="yes"
+-- 
+2.1.2
+
