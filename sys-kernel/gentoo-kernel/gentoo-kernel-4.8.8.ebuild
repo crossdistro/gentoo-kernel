@@ -125,13 +125,11 @@ src_prepare() {
 	if [[ -f ${USER_CONFIG} ]]; then
 		einfo "Using saved user config from ${USER_CONFIG}"
 		cd "${T}"/cfg || die
-		cp ${FILESDIR}/user-config.py . || die
-		chmod +x user-config.py || die
-		./user-config.py --combine ${USER_CONFIG} ${DISTRO_CONFIG} .config || die
+		user-config.py --combine ${USER_CONFIG} ${DISTRO_CONFIG} .config || die
 		cd "${S}" || die
 		make O="${T}"/cfg/ olddefconfig || die
 		cd "${T}"/cfg || die
-		./user-config.py --diff ${USER_CONFIG} ${DISTRO_CONFIG} .config . || die
+		user-config.py --diff ${USER_CONFIG} ${DISTRO_CONFIG} .config . || die
 		process_diffs
 	else
 		cp ${DISTRO_CONFIG} "${T}"/cfg/.config
