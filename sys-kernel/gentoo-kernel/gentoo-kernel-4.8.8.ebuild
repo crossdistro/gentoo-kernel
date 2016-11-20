@@ -143,6 +143,7 @@ src_compile() {
 	install -d "${T}"/{cache,twork}
 	install -d "${WORKDIR}"/build "${WORKDIR}"/out/lib/firmware
 	genkernel \
+		--no-menuconfig \
 		--no-save-config \
 		--no-clean \
 		--kernel-config="${T}"/cfg/.config \
