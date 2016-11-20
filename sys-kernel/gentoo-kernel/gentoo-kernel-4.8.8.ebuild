@@ -132,7 +132,7 @@ src_prepare() {
 		user-config.py --diff ${USER_CONFIG} ${DISTRO_CONFIG} .config . || die
 		process_diffs
 	else
-		cp ${DISTRO_CONFIG} "${T}"/cfg/.config
+		cp ${DISTRO_CONFIG} "${T}"/cfg/.config || die
 	fi
 }
 
