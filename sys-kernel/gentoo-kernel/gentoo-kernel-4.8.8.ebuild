@@ -5,7 +5,7 @@
 EAPI="5"
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
-K_GENPATCHES_VER="2"
+K_GENPATCHES_VER="9"
 K_DEBLOB_AVAILABLE="1"
 inherit kernel-2 mount-boot
 detect_version
@@ -125,13 +125,11 @@ src_prepare() {
 	if [[ -f ${USER_CONFIG} ]]; then
 		einfo "Using saved user config from ${USER_CONFIG}"
 		cd "${T}"/cfg || die
-		cp ${FILESDIR}/user-config.py . || die
-		chmod +x user-config.py || die
-		./user-config.py --combine ${USER_CONFIG} ${DISTRO_CONFIG} .config || die
+		user-config.py --combine ${USER_CONFIG} ${DISTRO_CONFIG} .config || die
 		cd "${S}" || die
 		make O="${T}"/cfg/ olddefconfig || die
 		cd "${T}"/cfg || die
-		./user-config.py --diff ${USER_CONFIG} ${DISTRO_CONFIG} .config . || die
+		user-config.py --diff ${USER_CONFIG} ${DISTRO_CONFIG} .config . || die
 		process_diffs
 	else
 		cp ${DISTRO_CONFIG} "${T}"/cfg/.config
@@ -143,6 +141,7 @@ src_compile() {
 	install -d "${T}"/{cache,twork}
 	install -d "${WORKDIR}"/build "${WORKDIR}"/out/lib/firmware
 	genkernel \
+		--no-menuconfig \
 		--no-save-config \
 		--no-clean \
 		--kernel-config="${T}"/cfg/.config \
