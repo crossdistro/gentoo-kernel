@@ -18,7 +18,10 @@ IUSE="deblob +grub2 experimental"
 DESCRIPTION="Full sources including the Gentoo patchset for the ${KV_MAJOR}.${KV_MINOR} kernel tree"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 
-DEPEND=">=sys-kernel/genkernel-3.4.51.2-r1"
+DEPEND="
+	>=sys-kernel/genkernel-3.4.51.2-r1
+	sys-kernel/kernel-tools
+"
 
 USER_CONFIG="/etc/portage/savedconfig/sys-kernel/${PN}"
 DISTRO_CONFIG="${FILESDIR}/config-${PV}"
