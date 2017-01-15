@@ -92,10 +92,10 @@ src_configure() {
 src_compile() {
 	install -d "${WORKDIR}"/out/{lib,boot}
 	install -d "${T}"/{cache,twork}
-	#install -d "${WORKDIR}"/build "${WORKDIR}"/out/lib/firmware
 	genkernel \
 		--no-menuconfig \
 		--no-save-config \
+		--no-firmware \
 		--mrproper \
 		--clean \
 		--kernel-config="${T}"/cfg/final.config \
@@ -109,7 +109,10 @@ src_compile() {
 		--module-prefix="${WORKDIR}"/out \
 		all || die "genkernel failed"
 	# For some reason firmware gets installed anyway
-	rm -rf "${WORKDIR}"/out/lib/firmware
+	if [ -e "${WORKDIR}/out/lib/firmware" ]; then
+		ewarn "Firmware (${WORKDIR}/out/lib/firmware) installed anyway, we need to delete it."
+		rm -rf "${WORKDIR}/out/lib/firmware"
+	fi
 }
 
 src_install() {
