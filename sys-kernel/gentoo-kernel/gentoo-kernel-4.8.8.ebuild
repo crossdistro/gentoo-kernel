@@ -99,7 +99,6 @@ src_compile() {
 		--mrproper \
 		--clean \
 		--kernel-config="${T}"/cfg/final.config \
-		--kernname="${PN}" \
 		--kerneldir="${S}" \
 		--kernel-outputdir="${WORKDIR}"/build \
 		--makeopts="${MAKEOPTS}" \
