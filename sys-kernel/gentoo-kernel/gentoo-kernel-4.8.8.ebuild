@@ -87,6 +87,13 @@ src_compile() {
 	fi
 }
 
+check_file() {
+	local path="$1"
+	local dpath="${D}/${path}"
+
+	[ -e "${dpath}" ] && die "Missing required file in destination directory: ${path}"
+}
+
 src_install() {
 	# copy sources into place:
 	dodir /usr/src
@@ -127,6 +134,9 @@ src_install() {
 	# Fixes FL-14
 	cp "${WORKDIR}/build/System.map" "${D}/usr/src/linux-${P}/" || die
 	cp "${WORKDIR}/build/Module.symvers" "${D}/usr/src/linux-${P}/" || die
+
+	check_file /boot/kernel-genkernel-x86_64-4.8.8-gentoo
+	check_file /boot/initramfs-genkernel-x86_64-4.8.8-gentoo
 }
 
 cond_update_grub() {
