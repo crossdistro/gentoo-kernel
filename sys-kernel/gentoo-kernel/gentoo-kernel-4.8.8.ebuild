@@ -12,7 +12,7 @@ detect_arch
 
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
 HOMEPAGE="http://dev.gentoo.org/~mpagano/genpatches"
-IUSE="deblob +grub experimental -menuconfig"
+IUSE="deblob +grub +kpackage experimental -menuconfig"
 PROPERTIES="menuconfig? ( interactive )"
 
 DESCRIPTION="Directly installable kernel package using Gentoo sources and a bit of automation"
@@ -26,9 +26,6 @@ DEPEND="
 	>=sys-kernel/genkernel-3.5.0.6
 	sys-kernel/kernel-tools
 "
-
-USER_CONFIG="/etc/portage/savedconfig/sys-kernel/${PN}"
-DISTRO_CONFIG="${FILESDIR}/config-${PV}"
 
 ewarn_file() {
 	while read line; do
@@ -64,8 +61,8 @@ src_configure() {
 	mkdir -p "${T}"/cfg || die
 
 	cat `find /etc/kconfig/rules/ -type f` > "${T}/cfg/rules.config" || die
-	kpackage > "${T}/cfg/package.config" || die
-	kcombine ${DISTRO_CONFIG} "${T}/cfg/rules.config" "${T}/cfg/package.config" > "${T}/cfg/.config" || die
+	{ use kpackage && kpackage || true; } > "${T}/cfg/package.config" || die
+	kcombine "${FILESDIR}/config-${PV}" "${T}/cfg/rules.config" "${T}/cfg/package.config" > "${T}/cfg/.config" || die
 
 	kconfig --check "${T}/cfg/.config" || die
 	make O="${T}/cfg/" olddefconfig || die
