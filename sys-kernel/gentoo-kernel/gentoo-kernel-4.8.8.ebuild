@@ -20,7 +20,10 @@ DESCRIPTION="Directly installable kernel package using Gentoo sources and a bit 
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 
 DEPEND="
-	>=sys-kernel/genkernel-3.4.51.2-r1
+	# We want to use a version of genkernel that doesn't install firmware by default.
+	#
+	# https://bugs.gentoo.org/show_bug.cgi?id=600262#c1
+	>=sys-kernel/genkernel-3.5.0.6
 	sys-kernel/kernel-tools
 "
 
