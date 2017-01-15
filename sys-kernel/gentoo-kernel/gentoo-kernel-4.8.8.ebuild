@@ -27,31 +27,6 @@ DEPEND="
 	sys-kernel/kernel-tools
 "
 
-ewarn_file() {
-	while read line; do
-		ewarn $line
-	done < ${1}
-}
-
-elog_file() {
-	while read line; do
-		elog $line
-	done < ${1}
-}
-
-pkg_postinst() {
-	kernel-2_pkg_postinst
-	einfo "For more info on this patchset, and how to report problems, see:"
-	einfo "${HOMEPAGE}"
-	if use grub; then
-		grub-mkconfig > /boot/grub/grub.cfg
-	fi
-}
-
-pkg_postrm() {
-    kernel-2_pkg_postrm
-}
-
 pkg_setup() {
 	export REAL_ARCH="$ARCH"
 	unset ARCH; unset LDFLAGS #will interfere with Makefile if set
@@ -152,4 +127,18 @@ src_install() {
 	# Fixes FL-14
 	cp "${WORKDIR}/build/System.map" "${D}/usr/src/linux-${P}/" || die
 	cp "${WORKDIR}/build/Module.symvers" "${D}/usr/src/linux-${P}/" || die
+}
+
+cond_update_grub() {
+	use grub && grub-mkconfig > /boot/grub/grub.cfg
+}
+
+pkg_postinst() {
+	kernel-2_pkg_postinst
+	cond_update_grub
+}
+
+pkg_postrm() {
+	kernel-2_pkg_postrm
+	cond_update_grub
 }
