@@ -105,7 +105,7 @@ src_compile() {
 		--logfile="${WORKDIR}"/genkernel.log \
 		--bootdir="${WORKDIR}"/out/boot \
 		--module-prefix="${WORKDIR}"/out \
-		kernel || die "genkernel failed"
+		all || die "genkernel failed"
 	# For some reason firmware gets installed anyway
 	rm -rf "${WORKDIR}"/out/lib/firmware
 }
