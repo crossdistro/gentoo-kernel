@@ -17,6 +17,7 @@ IUSE="deblob +grub experimental -menuconfig"
 PROPERTIES="menuconfig? ( interactive )"
 
 DESCRIPTION="Directly installable kernel package using Gentoo sources and a bit of automation"
+SLOT="0"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 
 DEPEND="
