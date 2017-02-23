@@ -3,6 +3,9 @@
 # $Header: /var/cvsroot/gentoo-x86/sys-kernel/gentoo-sources/gentoo-sources-3.16.1.ebuild,v 1.1 2014/08/14 12:17:42 mpagano Exp $
 
 EAPI="5"
+# Although this is not strictly a Gentoo kernel source package, we still
+# want to get all the kernel-2 eclass magic used for kernel sources.
+ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
 K_GENPATCHES_VER="9"
 K_DEBLOB_AVAILABLE="1"
