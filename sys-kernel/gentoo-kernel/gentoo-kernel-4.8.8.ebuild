@@ -30,6 +30,10 @@ DEPEND="
 	sys-kernel/kernel-tools
 "
 
+# We need to be able to find the right default genkernel configuration file
+# the respective kernel architecture. For some unknown reason KARCH is set
+# to `x86` by default on amd64/x86_64 machines and we need to fix that.
+export KARCH="$(tc-arch-kernel)"
 # Some variable interfere with the kernel Makefile. While they are harmless
 # with kernel source packages, `gentoo-kernel` ebuild actually uses the
 # kernel Makefile for all sorts of things including the actual kernel build
@@ -42,7 +46,7 @@ src_configure() {
 
 	cat `find /etc/kconfig/rules/ -type f` > "${T}/cfg/rules.config" || die
 	{ use kpackage && kpackage || true; } > "${T}/cfg/package.config" || die
-	kcombine "${FILESDIR}/config-${PV}" "${T}/cfg/rules.config" "${T}/cfg/package.config" > "${T}/cfg/.config" || die
+	kcombine "/usr/share/genkernel/arch/$KARCH/kernel-config" "${T}/cfg/rules.config" "${T}/cfg/package.config" > "${T}/cfg/.config" || die
 
 	kconfig --check "${T}/cfg/.config" || die
 	make O="${T}/cfg/" olddefconfig || die
