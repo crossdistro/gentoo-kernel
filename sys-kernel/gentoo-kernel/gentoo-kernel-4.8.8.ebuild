@@ -30,10 +30,12 @@ DEPEND="
 	sys-kernel/kernel-tools
 "
 
-pkg_setup() {
-	export REAL_ARCH="$ARCH"
-	unset ARCH; unset LDFLAGS #will interfere with Makefile if set
-}
+# Some variable interfere with the kernel Makefile. While they are harmless
+# with kernel source packages, `gentoo-kernel` ebuild actually uses the
+# kernel Makefile for all sorts of things including the actual kernel build
+# process.
+unset ARCH
+unset LDFLAGS
 
 src_configure() {
 	mkdir -p "${T}"/cfg || die
