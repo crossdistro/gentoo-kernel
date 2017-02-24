@@ -14,8 +14,8 @@ detect_version
 detect_arch
 
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-HOMEPAGE="http://dev.gentoo.org/~mpagano/genpatches"
-IUSE="deblob +grub +kpackage experimental -menuconfig"
+HOMEPAGE="https://github.com/crossdistro/gentoo-kernel"
+IUSE="experimental -menuconfig +kpackage +grub "
 PROPERTIES="menuconfig? ( interactive )"
 
 DESCRIPTION="Directly installable kernel package using Gentoo sources and a bit of automation"
