@@ -36,12 +36,25 @@ SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI}"
 DEPEND="
 	>=sys-kernel/genkernel-3.5.0.6
 	sys-kernel/kernel-tools
+	!=sys-kernel/gentoo-sources-${PV}
 "
 
 # We need to be able to find the right default genkernel configuration file
-# the respective kernel architecture. For some unknown reason KARCH is set
-# to `x86` by default on amd64/x86_64 machines and we need to fix that.
-export KARCH="$(tc-arch-kernel)"
+# the respective kernel architecture. While kernel no longer distinguishes
+# x86 and x86_64 architectures, genkernel stil does that. As a result, it
+# provides a different default configuration file for x86_64 and the
+# resulting file names also include that string.
+case "$ARCH" in
+amd64)
+	export GK_ARCH="x86_64"
+	;;
+ppc64)
+	export GK_ARCH="$ARCH"
+	;;
+*)
+	export GK_ARCH="$(tc-arch-kernel)"
+	;;
+esac
 # Some variable interfere with the kernel Makefile. While they are harmless
 # with kernel source packages, `gentoo-kernel` ebuild actually uses the
 # kernel Makefile for all sorts of things including the actual kernel build
@@ -54,7 +67,7 @@ src_configure() {
 
 	cat `find /etc/kconfig/rules/ -type f` > "${T}/cfg/rules.config" || die
 	{ use kpackage && kpackage || true; } > "${T}/cfg/package.config" || die
-	kcombine "/usr/share/genkernel/arch/$KARCH/kernel-config" "${T}/cfg/rules.config" "${T}/cfg/package.config" > "${T}/cfg/.config" || die
+	kcombine "/usr/share/genkernel/arch/$GK_ARCH/kernel-config" "${T}/cfg/rules.config" "${T}/cfg/package.config" > "${T}/cfg/.config" || die
 
 	kconfig --check "${T}/cfg/.config" || die
 	make O="${T}/cfg/" olddefconfig || die
@@ -104,33 +117,38 @@ src_compile() {
 	fi
 }
 
-check_file() {
+check_path() {
 	local path="$1"
 	local dpath="${D}/${path}"
 
-	[ -e "${dpath}" ] && die "Missing required file in destination directory: ${path}"
+	[ -e "${dpath}" ] || die "Missing required file in destination directory: ${path}"
 }
 
 src_install() {
-	# copy sources into place:
-	dodir /usr/src
-	cp -a "${S}" "${D}/usr/src/linux-${P}" || die
-	cd "${D}/usr/src/linux-${P}"
-	# prepare for real-world use and 3rd-party module building:
+	kernel-2_src_install
+
+	# TODO: Determine whether this is needed at all.
+	cd "${D}/usr/src/linux-${KV_FULL}" || die
 	make mrproper || die
 
-	cd ${D}
-	cp ${FILESDIR}/group-source-files.pl ${T} || die
-	chmod +x ${T}/group-source-files.pl
-	${T}/group-source-files.pl -D ${T}/keep-src-files -N ${T}/nokeep-src-files \
-		-L usr/src/linux-${P}
+	# TODO: Determine whether this is needed at all.
+	#
+	# Reduce the installed sources only to those needed for building
+	# modules, using a script from openSUSE.
+	cd "${D}" || die
+	perl ${FILESDIR}/group-source-files.pl -D ${T}/keep-src-files -N ${T}/nokeep-src-files \
+		-L usr/src/linux-${KV_FULL}
 
-	cd "${D}"/usr/src/linux-${P}
+	# TODO: Determine how much of this is needed at all.
+	#
+	# Copy the final config and clean up the repo.
+	cd "${D}/usr/src/linux-${KV_FULL}"
 	cp "${T}"/cfg/final.config .config || die
 	make olddefconfig || die
 	make prepare || die
 	make scripts || die
 
+	# Finally reduce the installed sources.
 	cat ${T}/nokeep-src-files | grep -v '%dir' | sed -e 's#^#'"${D}"'#' | xargs rm -f
 
 	# OK, now the source tree is configured to allow 3rd-party modules to be
@@ -145,15 +163,16 @@ src_install() {
 	find -iname *.ko -exec strip --strip-debug {} \;
 	# back to the symlink fixup:
 	local moddir="$(ls -d [23]*)"
-	ln -s /usr/src/linux-${P} "${D}"/lib/modules/${moddir}/source || die
-	ln -s /usr/src/linux-${P} "${D}"/lib/modules/${moddir}/build || die
+	ln -s /usr/src/linux-${KV_FULL} "${D}"/lib/modules/${moddir}/source || die
+	ln -s /usr/src/linux-${KV_FULL} "${D}"/lib/modules/${moddir}/build || die
 
 	# Fixes FL-14
-	cp "${WORKDIR}/build/System.map" "${D}/usr/src/linux-${P}/" || die
-	cp "${WORKDIR}/build/Module.symvers" "${D}/usr/src/linux-${P}/" || die
+	cp "${WORKDIR}/build/System.map" "${D}/usr/src/linux-${KV_FULL}/" || die
+	cp "${WORKDIR}/build/Module.symvers" "${D}/usr/src/linux-${KV_FULL}/" || die
 
-	check_file /boot/kernel-genkernel-x86_64-4.8.8-gentoo
-	check_file /boot/initramfs-genkernel-x86_64-4.8.8-gentoo
+	check_path "/usr/src/linux-${KV_FULL}"
+	check_path "/boot/kernel-genkernel-${GK_ARCH}-${KV_FULL}"
+	check_path "/boot/initramfs-genkernel-${GK_ARCH}-${KV_FULL}"
 }
 
 cond_update_grub() {
