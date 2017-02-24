@@ -7,7 +7,7 @@ EAPI="5"
 # want to get all the kernel-2 eclass magic used for kernel sources.
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras experimental"
-K_GENPATCHES_VER="9"
+K_GENPATCHES_VER="1"
 K_DEBLOB_AVAILABLE="1"
 inherit kernel-2 mount-boot
 detect_version
