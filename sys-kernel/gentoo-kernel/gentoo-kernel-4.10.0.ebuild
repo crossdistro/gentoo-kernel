@@ -15,7 +15,15 @@ detect_arch
 
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
 HOMEPAGE="https://github.com/crossdistro/gentoo-kernel"
-IUSE="experimental -menuconfig +kpackage +grub "
+# A couple of use flags including `symlink` inherited from the `kernel-2`
+# eclass are set by default in order to provide full automation of the
+# `gentoo-kernel` e build.
+#
+#   * kpackage – Enable package based kernel configuration automation.
+#   * grub – Configure grub to boot the new kernel.
+#   * symlink – Fix the `/usr/src/linux` symlink to point to the new kernel.
+# 
+IUSE="experimental -menuconfig +kpackage +grub +symlink"
 PROPERTIES="menuconfig? ( interactive )"
 
 DESCRIPTION="Directly installable kernel package using Gentoo sources and a bit of automation"
